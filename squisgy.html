@@ -2,7 +2,14 @@
 <html lang="es-MX">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, viewport-fit=cover">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, minimum-scale=1, user-scalable=no, viewport-fit=cover">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Find Squishy">
+<meta name="theme-color" content="#0A1410">
+<meta name="format-detection" content="telephone=no">
+<link rel="apple-touch-icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Crect width='100' height='100' rx='22' fill='%230A1410'/%3E%3Cpath d='M50 20c16 0 28 12 28 27 0 17-14 30-28 30S22 64 22 47c0-15 12-27 28-27z' fill='%23FF7AAE'/%3E%3C/svg%3E">
 <title>Find the Squishy · Radar</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Fredoka:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet">
@@ -33,7 +40,9 @@
     justify-content:center;
     align-items:center;
     min-height:100vh;
+    min-height:100dvh;
     padding:18px;
+    overscroll-behavior:none;
   }
   @media (prefers-reduced-motion: reduce){
     *{animation-duration:0.001ms !important; animation-iteration-count:1 !important; transition-duration:0.001ms !important;}
@@ -53,7 +62,32 @@
     overflow:hidden;
     display:flex;
     flex-direction:column;
+    transition:border-radius .2s ease;
   }
+
+  /* Modo app nativa: agregada a pantalla de inicio (iOS/Android) o en fullscreen del navegador.
+     Se quita el "marco de teléfono" para que ocupe todo el viewport, sin verse como una página. */
+  html.app-mode body{
+    padding:0;
+    background:var(--bg-deep);
+  }
+  html.app-mode .phone{
+    max-width:none;
+    max-height:none;
+    width:100%;
+    height:100%;
+    aspect-ratio:auto;
+    border-radius:0;
+    border:none;
+    box-shadow:none;
+  }
+  html.app-mode .statusbar{
+    padding-top:calc(env(safe-area-inset-top, 0px) + 10px);
+  }
+  html.app-mode .sheet{
+    padding-bottom:calc(14px + env(safe-area-inset-bottom, 0px));
+  }
+  html.app-mode .fs-btn{ display:none; }
 
   /* ---------- status/header ---------- */
   .statusbar{
@@ -361,6 +395,43 @@
     box-shadow:0 10px 24px -8px rgba(76,255,160,0.5);
   }
   .toast.show{ transform:translate(-50%,0%); opacity:1; }
+
+  .fs-btn{
+    background:none; border:none; padding:2px;
+    color:var(--text-muted); cursor:pointer;
+    display:flex; align-items:center; justify-content:center;
+    opacity:.7;
+  }
+  .fs-btn svg{ width:13px; height:13px; }
+
+  .install-hint{
+    position:absolute; left:12px; right:12px; bottom:12px;
+    background:var(--card);
+    border:1px solid var(--card-line);
+    border-radius:16px;
+    padding:12px 14px;
+    display:flex; align-items:center; gap:10px;
+    box-shadow:0 20px 40px -18px rgba(0,0,0,0.7);
+    transform:translateY(8px);
+    opacity:0;
+    pointer-events:none;
+    transition:transform .3s ease, opacity .3s ease;
+    z-index:40;
+  }
+  .install-hint.show{ transform:translateY(0); opacity:1; pointer-events:auto; }
+  .install-hint .ic{
+    flex:none; width:26px; height:26px; border-radius:8px;
+    background:var(--ring-soft); display:flex; align-items:center; justify-content:center;
+    color:var(--phosphor); font-size:14px;
+  }
+  .install-hint p{
+    margin:0; font-size:11px; line-height:1.5; color:var(--text); flex:1;
+  }
+  .install-hint p b{ color:var(--phosphor); font-family:'Fredoka', sans-serif; font-weight:500; }
+  .install-hint .close{
+    flex:none; background:none; border:none; color:var(--text-muted);
+    font-size:14px; cursor:pointer; padding:2px 4px;
+  }
 </style>
 </head>
 <body>
@@ -369,7 +440,14 @@
 
   <div class="statusbar">
     <span><span class="dot"></span>SEÑAL ACTIVA</span>
-    <span>MTY · 25.67°N</span>
+    <span style="display:flex; align-items:center; gap:8px;">
+      MTY · 25.67°N
+      <button class="fs-btn" id="fsBtn" aria-label="Pantalla completa" title="Pantalla completa">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M8 3H5a2 2 0 0 0-2 2v3M16 3h3a2 2 0 0 1 2 2v3M21 16v3a2 2 0 0 1-2 2h-3M3 16v3a2 2 0 0 0 2 2h3"/>
+        </svg>
+      </button>
+    </span>
   </div>
 
   <div class="header">
@@ -396,7 +474,6 @@
   <div class="sheet">
     <div class="sheet-title">
       <h2>Cerca de ti</h2>
-      <span>toca uno para escribir tu pista</span>
     </div>
     <div class="list" id="list"><!-- rows injected --></div>
   </div>
@@ -406,6 +483,12 @@
   </div>
 
   <div class="toast" id="toast">¡Squishie marcado como encontrado! 🎉</div>
+
+  <div class="install-hint" id="installHint">
+    <div class="ic">⤴</div>
+    <p>Toca <b>Compartir</b> y luego <b>"Agregar a inicio"</b> para abrir esto como app, sin barra de navegador.</p>
+    <button class="close" id="installHintClose" aria-label="Cerrar">✕</button>
+  </div>
 </div>
 
 <script>
@@ -510,7 +593,7 @@
         <div id="clueInput" class="clue-text" contenteditable="true" data-placeholder="Sin pista todavía." data-empty="${savedClue ? 'false':'true'}">${savedClue}</div>
         <span id="clueTick" class="clue-saved-tick">✓ guardado</span>
       </div>
-      <div class="privacy-note">🔒 Nunca mostramos coordenadas ni dirección exacta — solo zona, radio y la pista. Todo se guarda únicamente en este navegador, no hay servidor.</div>
+      <div class="privacy-note">🔒 Nunca mostramos coordenadas ni dirección exacta — solo zona, radio y la pista.</div>
       <div class="actions">
         <button class="btn btn-ghost" id="closeBtn">Cerrar</button>
         <button class="btn btn-primary" id="foundBtn" ${isFound?'disabled':''}>${isFound?'Ya encontrado ✓':'¡Lo encontré!'}</button>
@@ -571,6 +654,40 @@
   buildBlips();
   buildList();
   requestAnimationFrame(animate);
+
+  // ---------- Modo "app nativa": standalone / fullscreen ----------
+  function isStandalone(){
+    return window.matchMedia('(display-mode: standalone)').matches ||
+           window.navigator.standalone === true; // iOS Safari legacy flag
+  }
+  function syncAppMode(){
+    document.documentElement.classList.toggle('app-mode', isStandalone() || !!document.fullscreenElement);
+  }
+  syncAppMode();
+  window.matchMedia('(display-mode: standalone)').addEventListener?.('change', syncAppMode);
+  document.addEventListener('fullscreenchange', syncAppMode);
+
+  const fsBtn = document.getElementById('fsBtn');
+  if(!document.documentElement.requestFullscreen){ fsBtn.style.display = 'none'; }
+  fsBtn.addEventListener('click', () => {
+    if(!document.fullscreenElement){
+      document.documentElement.requestFullscreen?.().catch(()=>{});
+    } else {
+      document.exitFullscreen?.();
+    }
+  });
+
+  // Banner de "agregar a pantalla de inicio": solo iOS Safari, solo si no está ya instalada, solo una vez.
+  const isIOS = /iphone|ipad|ipod/i.test(navigator.userAgent);
+  const isSafari = /safari/i.test(navigator.userAgent) && !/crios|fxios|edgios/i.test(navigator.userAgent);
+  const installHint = document.getElementById('installHint');
+  if(isIOS && isSafari && !isStandalone() && !localStorage.getItem('squishy-install-hint-dismissed')){
+    setTimeout(()=> installHint.classList.add('show'), 900);
+  }
+  document.getElementById('installHintClose').addEventListener('click', () => {
+    installHint.classList.remove('show');
+    localStorage.setItem('squishy-install-hint-dismissed', '1');
+  });
 </script>
 
 </body>
