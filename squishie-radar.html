@@ -1,0 +1,577 @@
+<!DOCTYPE html>
+<html lang="es-MX">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, viewport-fit=cover">
+<title>Find the Squishy · Radar</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Fredoka:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg:#0A1410;
+    --bg-deep:#050A08;
+    --ring:#1C3A2E;
+    --ring-soft:#132921;
+    --phosphor:#4CFFA0;
+    --phosphor-dim:#2C8F63;
+    --pink:#FF7AAE;
+    --lilac:#B98BFF;
+    --amber:#FFC15E;
+    --text:#EAFBF2;
+    --text-muted:#7FA895;
+    --card:#0E1F18;
+    --card-line:#1E3A2F;
+  }
+  *{box-sizing:border-box; -webkit-tap-highlight-color:transparent;}
+  html,body{height:100%;}
+  body{
+    margin:0;
+    background:var(--bg-deep);
+    font-family:'JetBrains Mono', monospace;
+    color:var(--text);
+    display:flex;
+    justify-content:center;
+    align-items:center;
+    min-height:100vh;
+    padding:18px;
+  }
+  @media (prefers-reduced-motion: reduce){
+    *{animation-duration:0.001ms !important; animation-iteration-count:1 !important; transition-duration:0.001ms !important;}
+  }
+
+  .phone{
+    width:100%;
+    max-width:412px;
+    height:100%;
+    max-height:880px;
+    aspect-ratio:9/19.5;
+    background:radial-gradient(120% 90% at 50% -10%, #0F2018 0%, var(--bg) 45%, var(--bg-deep) 100%);
+    border-radius:38px;
+    border:1px solid #16281f;
+    box-shadow:0 30px 80px -30px rgba(0,0,0,0.9), inset 0 0 0 6px #05100b;
+    position:relative;
+    overflow:hidden;
+    display:flex;
+    flex-direction:column;
+  }
+
+  /* ---------- status/header ---------- */
+  .statusbar{
+    display:flex; justify-content:space-between; align-items:center;
+    padding:14px 20px 0;
+    font-size:11px; letter-spacing:.06em; color:var(--text-muted);
+  }
+  .statusbar .dot{
+    display:inline-block; width:6px; height:6px; border-radius:50%;
+    background:var(--phosphor); margin-right:6px;
+    box-shadow:0 0 6px var(--phosphor);
+    animation:blink 1.6s ease-in-out infinite;
+  }
+  @keyframes blink{0%,100%{opacity:1} 50%{opacity:.35}}
+
+  .header{
+    padding:8px 20px 4px;
+  }
+  .eyebrow{
+    font-size:10.5px; letter-spacing:.16em; color:var(--phosphor-dim); text-transform:uppercase;
+  }
+  .title{
+    font-family:'Fredoka', sans-serif;
+    font-weight:600;
+    font-size:26px;
+    color:var(--text);
+    margin:2px 0 0;
+    display:flex; align-items:baseline; gap:8px;
+  }
+  .title small{
+    font-family:'JetBrains Mono', monospace;
+    font-size:11px; font-weight:500;
+    color:var(--pink);
+    letter-spacing:.04em;
+  }
+  .subline{
+    font-size:11.5px; color:var(--text-muted); margin-top:4px; line-height:1.5;
+  }
+  .subline b{color:var(--phosphor); font-weight:500;}
+
+  .censored{
+    filter: blur(5px);
+    user-select:none;
+    -webkit-user-select:none;
+    display:inline-block;
+    transition:filter .2s ease;
+  }
+  .censored-wrap{
+    display:inline-flex; align-items:center; gap:5px;
+  }
+  .censored-tag{
+    font-size:8px; letter-spacing:.1em; color:var(--pink);
+    border:1px solid rgba(255,122,174,0.4);
+    border-radius:5px; padding:1px 4px;
+    text-transform:uppercase;
+    flex:none;
+  }
+
+  /* ---------- radar ---------- */
+  .radar-wrap{
+    flex:1;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    position:relative;
+    margin:6px 0 2px;
+  }
+  .radar{
+    position:relative;
+    width:78%;
+    aspect-ratio:1/1;
+    border-radius:50%;
+    background:
+      radial-gradient(circle at 50% 50%, transparent 0 0);
+  }
+  .ring{
+    position:absolute; inset:0; border-radius:50%;
+    border:1px solid var(--ring);
+  }
+  .ring.r2{inset:16.5%; border-color:var(--ring-soft);}
+  .ring.r3{inset:33%; border-color:var(--ring);}
+  .ring.r4{inset:49.5%; border-color:var(--ring-soft);}
+  .crosshair{
+    position:absolute; inset:0;
+  }
+  .crosshair::before, .crosshair::after{
+    content:''; position:absolute; background:var(--ring);
+  }
+  .crosshair::before{ left:0; right:0; top:50%; height:1px; }
+  .crosshair::after{ top:0; bottom:0; left:50%; width:1px; }
+
+  .sweep{
+    position:absolute; inset:0; border-radius:50%;
+    overflow:hidden;
+    animation:spin 5.5s linear infinite;
+  }
+  .sweep-fill{
+    position:absolute; inset:0;
+    background:conic-gradient(from 0deg, rgba(76,255,160,0.32) 0deg, rgba(76,255,160,0.08) 26deg, transparent 60deg);
+  }
+  @keyframes spin{ to{ transform:rotate(360deg); } }
+
+  .center-you{
+    position:absolute; left:50%; top:50%; transform:translate(-50%,-50%);
+    width:14px; height:14px; border-radius:50%;
+    background:var(--text);
+    box-shadow:0 0 0 4px rgba(234,251,242,0.12), 0 0 14px rgba(234,251,242,0.5);
+    z-index:5;
+  }
+  .center-you::after{
+    content:'TÚ';
+    position:absolute; top:18px; left:50%; transform:translateX(-50%);
+    font-size:9px; letter-spacing:.12em; color:var(--text-muted);
+  }
+
+  .blip{
+    position:absolute; left:50%; top:50%;
+    width:26px; height:26px;
+    transform:translate(-50%,-50%);
+    display:flex; align-items:center; justify-content:center;
+    cursor:pointer;
+    z-index:4;
+    border:none; background:none; padding:0;
+  }
+  .blip .blob{
+    width:16px; height:16px;
+    border-radius:42% 58% 55% 45%/48% 45% 55% 52%;
+    box-shadow:0 0 10px 1px currentColor;
+    transition:transform .25s ease;
+  }
+  .blip[data-found="true"] .blob{ opacity:.35; filter:grayscale(.4); }
+  .blip.ping .blob{ animation:squish .5s ease; }
+  @keyframes squish{
+    0%{ transform:scale(1,1); }
+    35%{ transform:scale(1.5,0.62); }
+    60%{ transform:scale(0.82,1.28); }
+    100%{ transform:scale(1,1); }
+  }
+  .blip .ripple{
+    position:absolute; inset:-9px; border-radius:50%;
+    border:1px solid currentColor; opacity:0;
+  }
+  .blip.ping .ripple{ animation:ripple .6s ease-out; }
+  @keyframes ripple{
+    0%{ opacity:.55; transform:scale(.4); }
+    100%{ opacity:0; transform:scale(1.9); }
+  }
+
+  .radar-meta{
+    position:absolute; bottom:8px; left:50%; transform:translateX(-50%);
+    font-size:9.5px; letter-spacing:.1em; color:var(--text-muted);
+    text-align:center;
+  }
+
+  /* ---------- bottom sheet: list ---------- */
+  .sheet-handle{
+    display:flex; justify-content:center; padding:8px 0 2px;
+  }
+  .sheet-handle span{
+    width:34px; height:4px; border-radius:3px; background:var(--card-line);
+  }
+  .sheet{
+    background:var(--card);
+    border-top:1px solid var(--card-line);
+    border-radius:22px 22px 0 0;
+    padding:6px 16px 14px;
+  }
+  .sheet-title{
+    display:flex; justify-content:space-between; align-items:center;
+    padding:2px 2px 8px;
+  }
+  .sheet-title h2{
+    font-family:'Fredoka', sans-serif; font-weight:600; font-size:14.5px; margin:0; color:var(--text);
+  }
+  .sheet-title span{
+    font-size:10.5px; color:var(--phosphor-dim);
+  }
+  .list{
+    display:flex; flex-direction:column; gap:6px;
+    max-height:150px; overflow-y:auto;
+  }
+  .row{
+    display:flex; align-items:center; gap:10px;
+    background:var(--ring-soft);
+    border:1px solid var(--card-line);
+    border-radius:12px;
+    padding:8px 10px;
+    cursor:pointer;
+  }
+  .row .swatch{
+    width:22px; height:22px; flex:none;
+    border-radius:42% 58% 55% 45%/48% 45% 55% 52%;
+    box-shadow:0 0 8px 0 currentColor;
+  }
+  .row .info{ flex:1; min-width:0; }
+  .row .name{
+    font-family:'Fredoka', sans-serif; font-size:13px; font-weight:500; color:var(--text);
+  }
+  .row .dist{
+    font-size:10px; color:var(--text-muted); margin-top:1px;
+  }
+  .row .go{
+    font-size:10px; color:var(--phosphor); letter-spacing:.06em;
+  }
+  .row[data-found="true"]{ opacity:.45; }
+
+  /* ---------- detail overlay ---------- */
+  .overlay{
+    position:absolute; inset:0;
+    background:rgba(3,8,6,0.72);
+    backdrop-filter:blur(2px);
+    display:flex; align-items:flex-end;
+    opacity:0; pointer-events:none;
+    transition:opacity .25s ease;
+    z-index:20;
+  }
+  .overlay.open{ opacity:1; pointer-events:auto; }
+  .detail{
+    width:100%;
+    background:var(--card);
+    border-top:1px solid var(--card-line);
+    border-radius:24px 24px 0 0;
+    padding:16px 20px 22px;
+    transform:translateY(14px);
+    transition:transform .25s ease;
+  }
+  .overlay.open .detail{ transform:translateY(0); }
+  .detail-top{ display:flex; gap:12px; align-items:center; }
+  .detail-blob{
+    width:44px; height:44px; flex:none;
+    border-radius:42% 58% 55% 45%/48% 45% 55% 52%;
+    box-shadow:0 0 18px 1px currentColor;
+  }
+  .detail-name{
+    font-family:'Fredoka', sans-serif; font-size:19px; font-weight:600; color:var(--text);
+  }
+  .detail-tag{
+    font-size:10.5px; color:var(--text-muted); margin-top:2px;
+  }
+  .detail-grid{
+    display:grid; grid-template-columns:1fr 1fr; gap:8px;
+    margin:14px 0;
+  }
+  .stat{
+    background:var(--ring-soft); border:1px solid var(--card-line);
+    border-radius:10px; padding:8px 10px;
+  }
+  .stat label{ display:block; font-size:9px; letter-spacing:.08em; color:var(--text-muted); text-transform:uppercase;}
+  .stat p{ margin:3px 0 0; font-size:12.5px; color:var(--text); }
+  .clue-box{
+    background:linear-gradient(135deg, rgba(185,139,255,0.1), rgba(255,122,174,0.08));
+    border:1px solid var(--card-line);
+    border-radius:12px; padding:10px 12px;
+    position:relative;
+  }
+  .clue-box b{ color:var(--lilac); font-family:'Fredoka', sans-serif; font-weight:500; font-size:11px; letter-spacing:.04em; display:block; margin-bottom:6px;}
+  .clue-text{
+    width:100%;
+    background:none;
+    border:none;
+    color:var(--text);
+    font-family:'JetBrains Mono', monospace;
+    font-size:12px; line-height:1.55;
+    padding:0;
+    margin:0;
+    cursor:text;
+    outline:none;
+    white-space:pre-wrap;
+    word-break:break-word;
+  }
+  .clue-text[data-empty="true"]:before{
+    content:attr(data-placeholder);
+    color:var(--text-muted);
+  }
+  .clue-saved-tick{
+    position:absolute; top:9px; right:11px;
+    font-size:10px; color:var(--phosphor);
+    opacity:0; transition:opacity .4s ease;
+    pointer-events:none;
+  }
+  .clue-saved-tick.show{ opacity:1; }
+  .privacy-note{
+    display:flex; gap:6px; align-items:flex-start;
+    font-size:10px; color:var(--text-muted); margin-top:10px; line-height:1.5;
+  }
+  .actions{
+    display:flex; gap:10px; margin-top:16px;
+  }
+  .btn{
+    flex:1; border:none; border-radius:12px; padding:12px 10px;
+    font-family:'Fredoka', sans-serif; font-weight:500; font-size:13px;
+    cursor:pointer; text-align:center;
+  }
+  .btn-primary{ background:var(--phosphor); color:#03150C; }
+  .btn-primary[disabled]{ background:var(--card-line); color:var(--text-muted); }
+  .btn-ghost{ background:transparent; border:1px solid var(--card-line); color:var(--text-muted); }
+
+  .toast{
+    position:absolute; top:14px; left:50%; transform:translate(-50%,-140%);
+    background:var(--phosphor); color:#03150C;
+    font-family:'Fredoka', sans-serif; font-weight:500; font-size:12.5px;
+    padding:9px 16px; border-radius:20px;
+    opacity:0; transition:transform .35s ease, opacity .35s ease;
+    z-index:30; white-space:nowrap;
+    box-shadow:0 10px 24px -8px rgba(76,255,160,0.5);
+  }
+  .toast.show{ transform:translate(-50%,0%); opacity:1; }
+</style>
+</head>
+<body>
+
+<div class="phone">
+
+  <div class="statusbar">
+    <span><span class="dot"></span>SEÑAL ACTIVA</span>
+    <span>MTY · 25.67°N</span>
+  </div>
+
+  <div class="header">
+    <div class="eyebrow">Squishie Radar · Red ciudadana</div>
+    <h1 class="title">Find the Squishy <small>#032</small></h1>
+    <p class="subline">Detectamos <b id="countLabel">6</b> squishies escondidos cerca de ti, publicados por usuarios anónimos. La zona aparece censurada — tú escribes la pista y se guarda en este dispositivo.</p>
+  </div>
+
+  <div class="radar-wrap">
+    <div class="radar" id="radar">
+      <div class="ring r1"></div>
+      <div class="ring r2"></div>
+      <div class="ring r3"></div>
+      <div class="ring r4"></div>
+      <div class="crosshair"></div>
+      <div class="sweep"><div class="sweep-fill"></div></div>
+      <div class="center-you"></div>
+      <!-- blips injected by JS -->
+    </div>
+    <div class="radar-meta">RADIO DE BÚSQUEDA · 500 m</div>
+  </div>
+
+  <div class="sheet-handle"><span></span></div>
+  <div class="sheet">
+    <div class="sheet-title">
+      <h2>Cerca de ti</h2>
+      <span>toca uno para escribir tu pista</span>
+    </div>
+    <div class="list" id="list"><!-- rows injected --></div>
+  </div>
+
+  <div class="overlay" id="overlay">
+    <div class="detail" id="detailCard"></div>
+  </div>
+
+  <div class="toast" id="toast">¡Squishie marcado como encontrado! 🎉</div>
+</div>
+
+<script>
+  const squishies = [
+    { id:1, color:'#FF7AAE', zone:'Plaza comercial cercana', sector:'NE', minM:120, maxM:180, difficulty:'Fácil' },
+    { id:2, color:'#7CF2C0', zone:'Parque o área verde cercana', sector:'N', minM:260, maxM:340, difficulty:'Media' },
+    { id:3, color:'#B98BFF', zone:'Camellón cercano', sector:'S', minM:410, maxM:480, difficulty:'Difícil' },
+    { id:4, color:'#FFC15E', zone:'Explanada o plaza pública', sector:'O', minM:190, maxM:250, difficulty:'Media' },
+    { id:5, color:'#FF9E7A', zone:'Zona comercial cercana', sector:'SE', minM:90, maxM:140, difficulty:'Fácil' },
+    { id:6, color:'#8FE3A5', zone:'Área verde o camellón', sector:'NO', minM:300, maxM:370, difficulty:'Media' },
+  ];
+
+  // "usuario" que publicó cada squishy: anónimo, sin datos que identifiquen a nadie
+  squishies.forEach(sq => { sq.user = 'Usuario Anónimo ' + sq.id; });
+
+  // Pistas: no vienen precargadas. Cada quien las escribe y se guardan
+  // SOLO en este navegador (localStorage) — no hay servidor ni base de datos.
+  const CLUE_KEY = 'squishy-clue-';
+  function getClue(id){ return localStorage.getItem(CLUE_KEY+id) || ''; }
+  function setClue(id, text){ localStorage.setItem(CLUE_KEY+id, text); }
+
+  const angleForSector = { N:270, NE:315, E:0, SE:45, S:90, SO:135, O:180, NO:225 };
+  // (angles in "screen" degrees where 0deg = sweep start pointing up via CSS rotate from top)
+
+  const radarEl = document.getElementById('radar');
+  const listEl = document.getElementById('list');
+  const overlay = document.getElementById('overlay');
+  const detailCard = document.getElementById('detailCard');
+  const toast = document.getElementById('toast');
+  const countLabel = document.getElementById('countLabel');
+
+  const found = new Set();
+
+  function radiusPct(minM, maxM){
+    // map fuzzy distance range to a radar radius band (8% - 46%), jitter within band
+    const avg = (minM+maxM)/2;
+    const pct = 8 + Math.min(avg/500, 1) * 38;
+    return pct + (Math.random()*3 - 1.5);
+  }
+
+  function buildBlips(){
+    squishies.forEach(sq => {
+      const baseAngle = angleForSector[sq.sector];
+      const angle = baseAngle + (Math.random()*18 - 9); // jitter so it's not exact
+      sq._angle = angle;
+      const r = radiusPct(sq.minM, sq.maxM);
+      const rad = (angle - 90) * Math.PI/180;
+      const x = 50 + r*Math.cos(rad);
+      const y = 50 + r*Math.sin(rad);
+
+      const btn = document.createElement('button');
+      btn.className = 'blip';
+      btn.dataset.id = sq.id;
+      btn.style.left = x+'%';
+      btn.style.top = y+'%';
+      btn.style.color = sq.color;
+      btn.setAttribute('aria-label', 'Squishie detectado, sector '+sq.sector);
+      btn.innerHTML = '<span class="ripple"></span><span class="blob" style="background:'+sq.color+'"></span>';
+      btn.addEventListener('click', () => openDetail(sq.id));
+      radarEl.appendChild(btn);
+      sq._el = btn;
+    });
+  }
+
+  function buildList(){
+    listEl.innerHTML = '';
+    squishies.slice().sort((a,b)=>a.minM-b.minM).forEach(sq => {
+      const row = document.createElement('div');
+      row.className = 'row';
+      row.dataset.found = found.has(sq.id);
+      row.innerHTML = `
+        <div class="swatch" style="background:${sq.color}; color:${sq.color}"></div>
+        <div class="info">
+          <div class="name">${sq.user}</div>
+          <div class="dist"><span class="censored-wrap"><span class="censored">${sq.zone}</span><span class="censored-tag">oculto</span></span> · ${sq.minM}–${sq.maxM} m · sector ${sq.sector}</div>
+        </div>
+        <div class="go">${found.has(sq.id) ? 'LISTO' : 'VER →'}</div>
+      `;
+      row.addEventListener('click', () => openDetail(sq.id));
+      listEl.appendChild(row);
+    });
+  }
+
+  function openDetail(id){
+    const sq = squishies.find(s=>s.id===id);
+    const isFound = found.has(id);
+    const savedClue = getClue(id);
+    detailCard.innerHTML = `
+      <div class="detail-top">
+        <div class="detail-blob" style="background:${sq.color}; color:${sq.color}"></div>
+        <div>
+          <div class="detail-name">${sq.user}</div>
+          <div class="detail-tag">Dificultad: ${sq.difficulty} · Sector ${sq.sector}</div>
+        </div>
+      </div>
+      <div class="detail-grid">
+        <div class="stat"><label>Zona aprox.</label><p><span class="censored-wrap"><span class="censored">${sq.zone}</span><span class="censored-tag">oculto</span></span></p></div>
+        <div class="stat"><label>Distancia</label><p>${sq.minM}–${sq.maxM} m</p></div>
+      </div>
+      <div class="clue-box">
+        <b>PISTA</b>
+        <div id="clueInput" class="clue-text" contenteditable="true" data-placeholder="Sin pista todavía." data-empty="${savedClue ? 'false':'true'}">${savedClue}</div>
+        <span id="clueTick" class="clue-saved-tick">✓ guardado</span>
+      </div>
+      <div class="privacy-note">🔒 Nunca mostramos coordenadas ni dirección exacta — solo zona, radio y la pista. Todo se guarda únicamente en este navegador, no hay servidor.</div>
+      <div class="actions">
+        <button class="btn btn-ghost" id="closeBtn">Cerrar</button>
+        <button class="btn btn-primary" id="foundBtn" ${isFound?'disabled':''}>${isFound?'Ya encontrado ✓':'¡Lo encontré!'}</button>
+      </div>
+    `;
+    overlay.classList.add('open');
+    document.getElementById('closeBtn').onclick = closeDetail;
+    document.getElementById('foundBtn').onclick = () => markFound(id);
+
+    const clueEl = document.getElementById('clueInput');
+    const tick = document.getElementById('clueTick');
+    let saveTimer = null;
+    function persist(){
+      const text = clueEl.innerText.trim();
+      setClue(id, text);
+      clueEl.dataset.empty = text ? 'false' : 'true';
+      tick.classList.add('show');
+      clearTimeout(saveTimer);
+      saveTimer = setTimeout(()=> tick.classList.remove('show'), 1200);
+      buildList();
+    }
+    clueEl.addEventListener('input', () => {
+      clearTimeout(saveTimer);
+      saveTimer = setTimeout(persist, 500);
+    });
+    clueEl.addEventListener('blur', persist);
+  }
+
+  function closeDetail(){ overlay.classList.remove('open'); }
+
+  function markFound(id){
+    found.add(id);
+    closeDetail();
+    buildList();
+    countLabel.textContent = squishies.length - found.size;
+    showToast();
+  }
+
+  function showToast(){
+    toast.classList.add('show');
+    setTimeout(()=> toast.classList.remove('show'), 2000);
+  }
+
+  // sweep-sync ping: every rotation, check which blip angle is under the sweep
+  let lastTick = -1;
+  function animate(){
+    const t = (performance.now() % 5500) / 5500; // matches 5.5s sweep
+    const sweepDeg = t * 360;
+    squishies.forEach(sq => {
+      const diff = Math.abs(((sweepDeg - sq._angle + 540) % 360) - 180);
+      if(diff < 6 && lastTick !== sq.id){
+        sq._el.classList.remove('ping'); void sq._el.offsetWidth; sq._el.classList.add('ping');
+      }
+    });
+    requestAnimationFrame(animate);
+  }
+
+  buildBlips();
+  buildList();
+  requestAnimationFrame(animate);
+</script>
+
+</body>
+</html>
